@@ -41,6 +41,11 @@
 //
 void MArmOS_Configuration(){
 
+ 
+
+
+
+
 
 
 
@@ -72,7 +77,7 @@ void MArmOS_Configuration(){
 // //
 //    /////////  2.2 ADVANCED EXAMPLE  //////////
 //  //
-// //   var R1 = new Rotor( Name: "Motor1", Axis: "Y", OriMode: 0 );
+// //   var R1 = new Rotor( Name: "Motor1", Axis: "Y", OriMode: false );
 // //   var S1 = new SolidSG( 5, 0, 0 );
 // //   var P1 = new Piston( Name: "Piston1" , Axis: "X" );
 // //   var MyArm = R1+S1+P1;  // Assembling the arm using the components
@@ -309,6 +314,10 @@ void MArmOS_Configuration(){
 //     Shortcut: -PP TextPanelName
 //     Description: Print the current position of the arm into a text panel.
 //     The printed format is the same as a MoveTo command to make automation easier.
+//    - PrintPositionAppend TextPanelName
+//     Shortcut: -PPA TextPanelName
+//     Description: Append the current position of the arm into a text panel.
+//     The printed format is the same as a MoveTo command to make automation easier.
 //    - ClearPanel TextPanelName
 //     Shortcut: -CP TextPanelName
 //     Description: Clear the content of a text panel.
@@ -326,6 +335,11 @@ void MArmOS_Configuration(){
 //     Description: Tell all joints to save their respective position as their Home position.
 //       Warning, this command will not save the new Home permanently.
 //       You need to change the Home parameter directly in the joint's constructor for that.
+//    - RunFromPanel
+//     Shortcut: -RFG Line TextPanelName
+//     Description: Read a single line from a text panel and interpret it like any command arguments.
+//       In tandem with the -PPA command, this can be used to make quick sequences.
+//       Note. The Line argument can be any integer number. You can also use +1 ans -1 to easily scan through the lines.
 //
 //   Note: The correct format when using arguments is: "ControllerName Comand Parameter1 Parameter2 ... ;"
 //      Parameters are separated by ' ' (blank spaces) and multiple commands are separated by ';'.
@@ -347,12 +361,12 @@ void MArmOS_Configuration(){
 //   |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
 //   (Solid)                                       (Rotary)                       (Linear)
 //   |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|                |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
-//   (SolidSG)  (SolidLG) (Cubits)    (Rotor)     (Hydraulic)  (Piston)   [RotorWheel]
+//   (SolidSG)  (SolidLG) (Cubits)    (Rotor)     (Hydraulic)  (Piston)   (RotorWheel)
 //
 //
 //   (Controller)
-//   |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
-//   (UserControl)  [sequence]
+//   |
+//   (UserControl)
 //
 //
 //   For more information, go check the MArmOS 3.0 steam guide.
@@ -475,7 +489,7 @@ public void Main(string argument) {
     if (SleepMode){
       if ( Sleep != SleepMode )
         Runtime.UpdateFrequency = UpdateFrequency.Update10;
-      MyEcho("Script running in Sleep mode for performance friendlyness");
+      MyEcho("Waiting for movement input.");
       GlobStep += 9;
     } else {
       if ( Sleep != SleepMode )
@@ -524,9 +538,9 @@ static List<IMyTerminalBlock> EchoPanels{
       MyGTS.SearchBlocksOfName( EchoScreenName, echoPanels);
       EchoStep = GlobStep;
     }
-    foreach ( IMyTerminalBlock Panel in echoPanels ){
-      ((IMyTextPanel)Panel).ShowPublicTextOnScreen();
-    }
+    //foreach ( IMyTerminalBlock Panel in echoPanels ){
+    //  ((IMyTextPanel)Panel).ShowPublicTextOnScreen();
+    //}
     return echoPanels;
   }
 }
@@ -536,9 +550,9 @@ static List<IMyTerminalBlock> DebugPanels{
       MyGTS.SearchBlocksOfName( DebugScreenName, debugPanels);
       DebugStep = GlobStep;
     }
-    foreach ( IMyTerminalBlock Panel in debugPanels ){
-      ((IMyTextPanel)Panel).ShowPublicTextOnScreen();
-    }
+    //foreach ( IMyTerminalBlock Panel in debugPanels ){
+   //   ((IMyTextPanel)Panel).ShowPublicTextOnScreen();
+    //}
     return debugPanels;
   }
 }
@@ -549,7 +563,7 @@ static List<IMyTerminalBlock> LogPanels{
       LogStep = GlobStep;
     }
     foreach ( IMyTerminalBlock Panel in logPanels ){
-      ((IMyTextPanel)Panel).ShowPublicTextOnScreen();
+    //  ((IMyTextPanel)Panel).ShowPublicTextOnScreen();
       ((IMyTextPanel)Panel).SetValue("FontSize", 0.4F );
     }
     return logPanels;
@@ -561,7 +575,7 @@ static void MyEcho( String Text ){
   mEcho( Text );
   if ( EchoStep != GlobStep ){
     foreach ( IMyTerminalBlock EchoPanel in EchoPanels ){
-      ((IMyTextPanel)EchoPanel).WritePublicText( TexEcho, false );
+      ((IMyTextPanel)EchoPanel).WriteText( TexEcho, false );
     }
     TexEcho = EchoScreenName+":\n"+Text+"\n";
     EchoStep = GlobStep;
@@ -572,7 +586,7 @@ static void MyEcho( String Text ){
 static void MyDebug( String Text ){
   if ( DebugStep != GlobStep ){
     foreach ( IMyTerminalBlock DebugPanel in DebugPanels ){
-      ((IMyTextPanel)DebugPanel).WritePublicText( TexDebug, false );
+      ((IMyTextPanel)DebugPanel).WriteText( TexDebug, false );
     }
     TexDebug = DebugScreenName+":\n"+Text+"\n";
     DebugStep = GlobStep;
@@ -595,7 +609,7 @@ static void MyLog( String Text ){
   } while( i != LogPointer );
   Text = LogScreenName+":\n"+Text;
   foreach ( IMyTerminalBlock LogPanel in LogPanels ){
-    ((IMyTextPanel)LogPanel).WritePublicText( Text, false );
+    ((IMyTextPanel)LogPanel).WriteText( Text, false );
   }
 }
 static double STD( String txt ){
@@ -1862,7 +1876,7 @@ class Controller{
     Arm.Move( ControlMovement2, Arm );  // (dm/dt, drad/dt)
     Correction = Correction*0.9+(-Arm.dPose+ControlMovement)*0.5;
   }
-  void ParseArgument( String Argument = "" ){
+  protected void ParseArgument( String Argument = "" ){
     if ( Argument != "" ){
       MyLog( "Executing argument: "+Argument );
       String[] Lines = Argument.Split( '\n' );
@@ -1958,6 +1972,7 @@ class UserControl : Controller{
   public String  ShipControllerKeyword;
   public Hardware  ReferenceFrame;
   public cPose  ConstantMovement;
+  public int PanelLineIndex = -1;
   public cPose  Target{
     get{
       return target;
@@ -2000,7 +2015,7 @@ class UserControl : Controller{
     Target = new cPose( new Vector3D( X, Y, Z ) ) + new cPose( RotZ( Yaw*Math.PI/180 ) );
     Target += new cPose( RotY( Pitch*Math.PI/180 ) ) + new cPose( RotX( Roll*Math.PI/180 ) );
   }
-  public void PrintPosition( String PanelName = "" ) {
+  public void PrintPosition( String PanelName = "", bool append = false ) {
 
     var Text = Name+"MoveTo ";
     Text += Arm.Pose.Pos.X.ToString("0.000")+" ";
@@ -2017,7 +2032,10 @@ class UserControl : Controller{
     } else {
       IMyTextPanel Panel = (IMyTextPanel)MyGTS.GetBlockWithName( PanelName );
       MyLog( "Position Printed into "+ PanelName );
-      Panel.WritePublicText( Text, false );
+      if ( append && Panel.GetText() != "" ) {
+        Panel.WriteText( "\n", append );
+      }
+      Panel.WriteText( Text, append );
     }
   }
   public void ClearPanel( String PanelName ) {
@@ -2026,7 +2044,17 @@ class UserControl : Controller{
       MyLog( "<<Warning>> "+PanelName+" not found");
       WarningFlag = GlobStep+500;
     } else {
-      Panel.WritePublicText( "", false );
+      Panel.WriteText( "", false );
+    }
+  }
+  public String ReadPanel( String PanelName = "" ) {
+    if ( PanelName == "" ) {
+      MyLog( "<<Warning>> " + PanelName+" not found.");
+      WarningFlag = GlobStep+500;
+      return( "" );
+    } else {
+      IMyTextPanel Panel = (IMyTextPanel)MyGTS.GetBlockWithName( PanelName );
+      return Panel.GetText( );
     }
   }
   // << ---- O V E R R I D E S ---- >>
@@ -2074,6 +2102,7 @@ class UserControl : Controller{
       double Yaw = 0; double Pitch = 0; double Roll = 0, HomeSpeed = 1;
       String PanelName;
       string PartName;
+      String[] Lines;
       MyLog( "'"+Words[0]+"'" );
       switch ( Words[0] ){
         case "GoHome":  case "-GH":
@@ -2081,6 +2110,7 @@ class UserControl : Controller{
           try{
             HomeSpeed = STD(Words[1]);
           } catch (Exception){}
+          UseTarget = false;
           GoHome( HomeSpeed );
         break;
         case "SetHome":  case "-SH":
@@ -2107,7 +2137,42 @@ class UserControl : Controller{
             PrintPosition( );
           }
         break;
-        case "ClearPanel":  case "-CP":
+        case "PrintPositionAppend":  case "-PPA":
+          try{
+            PanelName = Reform( Words, 1 );
+            PrintPosition( PanelName, true );
+          } catch(Exception){
+            PrintPosition( );
+          }
+       break;
+        case "RunFromPanel":  case "-RFP":
+          try{
+            switch ( Words[1].ToCharArray()[0]){
+              case '+':
+                PanelLineIndex += (int)STD(Words[1]);
+              break;
+              case '-':
+                PanelLineIndex -= (int)STD(Words[1]);
+              break;
+              default:
+                PanelLineIndex = (int)STD(Words[1]);
+              break;
+            }
+            PanelName = Reform( Words, 2 );
+            Word = ReadPanel( PanelName );
+            Lines = Word.Split( '\n' );
+            try{
+              base.ParseArgument(Lines[PanelLineIndex]);
+            } catch(Exception){MyLog( 
+              "Invalid commands '"+Word+"'");
+              ErrorFlag = GlobStep+200;
+            }
+          } catch(Exception){MyLog( 
+            "Cannot execute 'RunFromPanel'");
+            ErrorFlag = GlobStep+200;
+          }
+       break;
+       case "ClearPanel":  case "-CP":
           PanelName = Reform( Words, 1 );
           ClearPanel( PanelName );
         break;
@@ -2251,16 +2316,11 @@ class UserControl : Controller{
   }
   cPose MoveToTarget( ){
     var Diff = Target-Arm.Pose;
-    Diff *= dt*0.5;
+    Diff *= dt;
     Diff.Pos = (Target.Pos-Arm.Pose.Pos)*dt;
     var Dist = Diff.Pos.Length();
-    if (Dist > 0.05){
-      Diff.Pos = Diff.Pos*Speed/Math.Max( 1, Dist*2 )*2*dt;
-      return Diff;
-    } else {
-      Diff.Pos = new Vector3D();
-      return Diff;
-    }
+    Diff.Pos = Diff.Pos*Speed/Dist*Math.Min( 1*Softness, Dist )/Softness*3;
+    return Diff;
   }
 }
 
