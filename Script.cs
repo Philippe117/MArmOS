@@ -719,6 +719,21 @@ class Hardware{
     nPoseUTD = false;
     dPoseUTD = false;
   }
+  public bool HasAnySolid( ){
+    if ( this is Solid ){
+        return true;
+    }
+    if ( this is Addition ){
+        var a = this as Addition;
+        return a.H1.HasAnySolid() || a.H2.HasAnySolid();
+    }
+    if ( this is Multiplication ){
+        var m = this as Multiplication;
+        return m.H1.HasAnySolid() || m.H2.HasAnySolid();
+    }
+	return false;
+  }
+
   // << ---- P R I V A T E   V A R I A B L E S ---- >>
   // Pose control variables
   cPose  pose = new cPose(), npose = new cPose(), dpose = new cPose();
@@ -1954,13 +1969,18 @@ class UserControl : Controller{
       MyLog( "ReferenceFrame set to Arm" );
       this.ReferenceFrame = this.Arm;
     }
+    if ( !this.Arm.HasAnySolid() ) {
+      MyLog( "<<Warning>> Your Arm has no Solids and may not work as expected.");
+      MyLog( "<<Warning>> Remember: MArmOS joints don't account for blocks' physical shapes.");
+      WarningFlag = GlobStep+200;
+    }
     this.YawSpeed = YawSpeed;
     this.PitchSpeed = PitchSpeed;
     this.RollSpeed = RollSpeed;
     this.ContrStep = 0;
     this.UseTarget = false;
     this.ConstantMovement = new cPose();
-  }
+ }
 
   // << ---- P U B L I C   V A R I A B L E S ---- >>
   public bool  OnOff;
